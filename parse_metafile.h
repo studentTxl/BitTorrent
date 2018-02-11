@@ -5,19 +5,18 @@
     > Created Time: Fri 09 Feb 2018 11:43:03 AM CST
  ************************************************************************/
 
-parse metafile.h
-#ifndef PARSE METAFILE
-#define PARSE METAFILE
+#ifndef PARSE_METAFILE
+#define PARSE_METAFILE
 
 //serve the URL of tracker
-typedef struct Announce list
+typedef struct _Announce_list
 {
 	char announce[128];
-	struct Announce list *next;
-}Announce list;
+	struct _Announce_list *next;
+}Announce_list;
 
 //server the length and rounter
-typedef struct Files
+typedef struct _Files
 {
 	char path[256];
 	long length;

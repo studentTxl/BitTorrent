@@ -6,8 +6,12 @@
  ************************************************************************/
 
 #include<stdio.h>
+#include"parse_metafile.h"
 
 int main()
 {
+	printf("hello\n");
+	read_metafile("2018.torrent");
+	//read_announce_list();
 	return 0;
 }
