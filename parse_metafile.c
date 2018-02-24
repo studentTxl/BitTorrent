@@ -78,7 +78,7 @@ int find_keyword(char *keyword, long *position)
 	{
 		if(memcmp(&metafile_content[i], keyword, strlen(keyword))==0)
 		{
-			*position = -1;
+			*position = i;
 			return 1;
 		}
 	}
@@ -92,7 +92,7 @@ int read_announce_list()
 	int len = 0;
 	long i;
 
-	if( find_keyword("13:announce-list", &i)==0)
+	if( find_keyword("13:announce-list", &i)==0 )
 	{
 		if(find_keyword("8:announce", &i) == 1)
 		{
@@ -120,7 +120,7 @@ int read_announce_list()
 			i++;
 			while(isdigit(metafile_content[i]))
 			{
-				len = len*10 + (metafile_content[i] - '0');
+  				len = len*10 + (metafile_content[i] - '0');
 				i++;
 			}
 			if(metafile_content[i] == ':')
@@ -130,7 +130,7 @@ int read_announce_list()
 
 			if(memcmp(&metafile_content[i], "http", 4)==0)
 			{
-				node = (Announce_list *)malloc(sizeof(Announce_list));
+  				node = (Announce_list *)malloc(sizeof(Announce_list));
 				strncpy(node->announce, &metafile_content[i], len);
 				node->announce[len] = '\0';
 				node->next = NULL;
@@ -138,7 +138,7 @@ int read_announce_list()
 					announce_list_head = node;
 				else
 				{
-					p = announce_list_head;
+  					p = announce_list_head;
 					while(p->next != NULL)
 						p = p->next;
 					p->next = node;
@@ -162,8 +162,214 @@ int read_announce_list()
 	return 0;
 }
 
+int add_an_announce(char *url)
+{
+	Announce_list *p = announce_list_head, *q;
 
+	while( p != NULL )
+	{
+		if(strcmp(p->announce, url) == 0)
+			break;
+		p = p->next;
+	}
+	if(p != NULL)
+		return 0;
 
+	q = (Announce_list *)malloc(sizeof(Announce_list));
+	strcpy(q->announce, url);
+	q->next = NULL;
 
+	p = announce_list_head;
+	if(p == NULL)
+	{
+		announce_list_head = q;
+		return 1;
+	}
+	while(p->next != NULL)
+		p = p->next;
+	p->next = q;
+	return 1;
+}
 
+int is_multi_files()
+{
+	long i;
+	if( find_keyword("5:files", &i)==1)
+	{
+		multi_file = 1;
+		return 1;
+	}
 
+#ifdef DEBUG
+	printf("is_multi_files:%d\n", multi_file);
+#endif
+	return 0;
+}
+
+int get_piece_length()
+{
+	long i;
+	if( find_keyword("12:piece length", &i)==1 )
+	{
+		i = i + strlen("12:piece length");
+		i++;
+		while(metafile_content[i] != 'e')
+		{
+			piece_length = piece_length * 10 + (metafile_content[i] - '0');
+			i++;
+		}
+	}
+	else
+	{
+		return -1;
+	}
+#ifdef DEBUG
+	printf("piece length: %d\n", piece_length);
+#endif
+	return 0;
+}
+
+int get_pieces()
+{
+	long i;
+	if(find_keyword("6:pieces", &i) == 1)
+	{
+		i = i+8;
+		while(metafile_content[i] != ':')
+		{
+			pieces_length = pieces_length * 10 + (metafile_content[i]-'0');
+			i++;
+		}
+			i++;
+			pieces = (char *)malloc(pieces_length+1);
+			memcpy(pieces, &metafile_content[i], pieces_length);
+			pieces[pieces_length] = '\0';
+	}
+	else
+	{
+		return -1;
+	}
+#ifdef DEBUG
+	printf("get pieces ok\n");
+#endif
+	return 0;
+}
+
+int get_file_name()
+{
+	long i;
+	int count = 0;
+	if(find_keyword("4:name", &i) == 1)
+	{
+		i = i + 6;
+		while(metafile_content[i] != ':')
+		{
+			count = count * 10 + (metafile_content[i] - '0');
+			i++;
+		}
+		i++;
+		file_name = (char *)malloc(count+1);
+		memcpy(file_name, &metafile_content[i], count);
+		file_name[count] = '\0';
+	}
+	else
+	{
+		return -1;
+	}
+#ifdef DEBUG
+	printf("file_name:%s", file_name);
+#endif
+	return 0;
+}
+
+int get_file_length()
+{
+	long i;
+	if(is_multi_files() == 1)
+	{
+		if(files_head == NULL)
+			get_files_length_path();
+		Files *p = files_head;
+		while(p != NULL)
+		{
+			file_length += p->length;
+			p = p->next;
+		}
+	}
+	else
+	{
+		if(find_keyword("6:length", &i) == 1)
+		{
+			i = i + 8;
+			i++;
+			while(metafile_content[i] != 'e')
+			{
+				file_length = file_length * 10 + (metafile_content[i]-'0');
+				i++;
+			}
+		}
+	}
+#ifdef DEBUG
+	printf("file lenngth :%lld\n", file_length);
+#endif
+	return 0;
+}
+
+int get_files_length_path()
+{
+	long i;
+	int length;
+	int count;
+	Files *node = NULL;
+	Files *p = NULL;
+
+	if(is_multi_files() != 1)
+	{
+		return 0;
+	}
+
+	for(i=0; i<filesize-8; i++)
+	{
+		if(memcmp(&metafile_content[i], "6:length", 8)==0)
+		{
+			i = i + 8;
+			i++;
+			length = 0;
+			while(metafile_content[i] != 'e')
+			{
+				length = length * 10 + (metafile_content[i]-'0');
+				i++;
+			}
+			node = (Files *)malloc(sizeof(Files));
+			node->length = length;
+			node->next = NULL;
+			if(files_head == NULL)
+				files_head = node;
+			else
+			{
+ 				p = files_head;
+				while(p->next != NULL)
+					p = p->next;
+				p->next = node;
+			}
+		}
+		if(memcmp(&metafile_content[i], "4:path", 6)==0)
+		{
+			i = i + 6;
+			i++;
+			count = 0;
+			while(metafile_content[i] != ':')
+			{
+				count = count * 10 + (metafile_content[i] - '0');
+				i++;
+			}
+			i++;
+			p = files_head;
+			while(p->next != NULL)
+				p = p->next;
+			memcpy(p->path, &metafile_content[i], count);
+			*(p->path + count) = '\0';
+		}
+	}
+	return 0;
+}

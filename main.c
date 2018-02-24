@@ -12,6 +12,9 @@ int main()
 {
 	printf("hello\n");
 	read_metafile("2018.torrent");
-	//read_announce_list();
+	read_announce_list();
+	is_multi_files();
+	get_piece_length();
+	get_file_name();
 	return 0;
 }

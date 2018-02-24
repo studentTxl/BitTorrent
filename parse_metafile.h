@@ -16,11 +16,11 @@ typedef struct _Announce_list
 }Announce_list;
 
 //server the length and rounter
-typedef struct _Files
+typedef struct Files
 {
 	char path[256];
 	long length;
-	struct _File *next;
+	struct Files *next;
 }Files;
 
 int read_metafile(char *metafile_name);
@@ -34,7 +34,7 @@ int get_pieces();
 int is_multi_files();
 int get_file_name();
 int get_file_length();
-int get_file_length_path();
+int get_files_length_path();
 int get_info_hash();
 int get_peer_id();
 
