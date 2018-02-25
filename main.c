@@ -10,11 +10,14 @@
 
 int main()
 {
-	printf("hello\n");
+/*	printf("hello\n");
 	read_metafile("2018.torrent");
 	read_announce_list();
 	is_multi_files();
 	get_piece_length();
 	get_file_name();
+	get_info_hash();*/
+	int ret = parse_metafile("2018.torrent");
+	printf("%d", ret);
 	return 0;
 }

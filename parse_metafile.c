@@ -373,3 +373,163 @@ int get_files_length_path()
 	}
 	return 0;
 }
+
+int get_info_hash()
+{
+	int push_pop = 0;
+	long i, begin, end;
+
+	if(metafile_content == NULL)
+		return -1;
+	if(find_keyword("4:info", &i) == 1)
+		begin = i + 6;
+	else
+		return -1;
+
+	i = i + 6;
+	for(; i<filesize; )
+		if(metafile_content[i] == 'd')
+		{
+			push_pop++;
+			i++;
+		}
+		else if(metafile_content[i] == 'l')
+		{
+			push_pop++;
+			i++;
+		}
+		else if(metafile_content[i] == 'i')
+		{
+			i++;
+			if(i == filesize)
+				return -1;
+			while(metafile_content[i] != 'e')
+			{
+				if((i+1) == filesize)
+					return -1;
+				else
+					i++;
+			}
+			i++;
+		}
+		else if((metafile_content[i] >= '0')&&(metafile_content[i]<='9'))
+		{
+			int number = 0;
+			while((metafile_content[i] >='0')&&(metafile_content[i]<='9'))
+			{
+				number = number * 10 + metafile_content[i] - '0';
+				i++;
+			}
+			i++;
+			i = i + number;
+		}
+		else if(metafile_content[i] == 'e')
+		{
+			push_pop--;
+			if(push_pop == 0)
+			{
+				end = i;
+				break;
+			}
+			else
+			{
+				i++;
+			}
+		}
+		else
+			return -1;
+	if(i == filesize)
+		return -1;
+	//SHA1_CTX context;
+	//SHA1Init(&context);
+	//SHA1Update(&context, &metafile_content[begin], end-begin+1);
+	//SHA1Final(info_hash, &context);
+
+#ifdef DEBUG
+	printf("info hash:");
+	for(i = 0; i < 20; ++i)
+		printf("%.2x", info_hash[i]);
+	printf("\n");
+#endif
+	return 0;
+}
+
+int get_peer_id()
+{
+	srand(time(NULL));
+	sprintf(peer_id, "-TT1000-%12d", rand());
+#ifdef DEBUG
+	printf("peer_id:%s\n", peer_id);
+#endif
+	return 0;
+}
+
+void release_memory_in_parse_metafile()
+{
+	Announce_list *p;
+	Files         *q;
+	if(metafile_content != NULL) free(metafile_content);
+	if(file_name != NULL)        free(file_name);
+	if(pieces != NULL)           free(pieces);
+
+	while(announce_list_head != NULL)
+	{
+		p = announce_list_head;
+		announce_list_head = announce_list_head->next;
+		free(p);
+	}
+
+	while(files_head != NULL)
+	{
+		q = files_head;
+		files_head = files_head->next;
+		free(q);
+	}
+}
+
+int parse_metafile(char *metafile)
+{
+	int ret;
+
+	ret = read_metafile(metafile);
+	if(ret < 0)
+	{ printf("%s:%d wrong",__FILE__, __LINE__); return -1; }
+
+	ret = read_announce_list();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	ret = is_multi_files();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	ret = get_piece_length();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	ret = get_pieces();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	ret = get_file_name();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	ret = get_files_length_path();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	ret = get_file_length();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	ret = get_info_hash();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	ret = get_peer_id();
+	if(ret < 0)
+	{ printf("%s:%d wrong", __FILE__, __LINE__); return -1;}
+
+	return 0;
+}
