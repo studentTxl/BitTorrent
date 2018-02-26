@@ -7,6 +7,9 @@
 
 #include<stdio.h>
 #include"parse_metafile.h"
+#include"bitfield.h"
+
+extern Bitmap * bitmap;
 
 int main()
 {
@@ -18,6 +21,9 @@ int main()
 	get_file_name();
 	get_info_hash();*/
 	int ret = parse_metafile("2018.torrent");
-	printf("%d", ret);
+	printf("%d\n", ret);
+
+	create_bitfield();
+	print_bitfield(bitmap);
 	return 0;
 }
